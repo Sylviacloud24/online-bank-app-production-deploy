@@ -17,7 +17,7 @@ spec:
   - host: argocd.cloudwitches.online
     http:
       paths:
-      - path: /
+      - path: 
         pathType: Prefix
         backend:
           service:

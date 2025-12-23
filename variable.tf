@@ -52,7 +52,7 @@ variable "min_size" {
 variable "instance_types" {
   description = "Instance types for the EKS node group"
   type        = list(string)
-  default     = ["t2.micro"]    
+  default     = ["t3.micro"]    
 } 
 
 variable "capacity_type" {
@@ -83,7 +83,7 @@ variable "zone_name" {
   default     = "example.com"
 }
 
-variable "domain-name" {
+variable "domain_name" {
   description = "Domain name to be created"
   type        = string
   default     = "myapp.example.com"
