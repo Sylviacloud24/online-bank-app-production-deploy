@@ -1,11 +1,17 @@
+#===========================#
+# HELM PROVIDER CONFIG
+#===========================#
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     host                   = aws_eks_cluster.eks.endpoint
     cluster_ca_certificate = base64decode(aws_eks_cluster.eks.certificate_authority[0].data)
     token                  = data.aws_eks_cluster_auth.eks.token
   }
 }
 
+#===========================#
+# KUBERNETES PROVIDER
+#===========================#
 provider "kubernetes" {
   alias                  = "eks"
   host                   = aws_eks_cluster.eks.endpoint
@@ -13,9 +19,16 @@ provider "kubernetes" {
   token                  = data.aws_eks_cluster_auth.eks.token
 }
 
+#===========================#
+# DATA SOURCE FOR EKS AUTH
+#===========================#
 data "aws_eks_cluster_auth" "eks" {
   name = aws_eks_cluster.eks.name
 }
+
+#===========================#
+# HELM RELEASE: NGINX INGRESS
+#===========================#
 resource "helm_release" "nginx_ingress" {
   name             = "nginx-ingress"
   repository       = "https://kubernetes.github.io/ingress-nginx"
@@ -23,11 +36,14 @@ resource "helm_release" "nginx_ingress" {
   version          = "4.12.0"
   namespace        = "ingress-nginx"
   create_namespace = true
+  values           = [file("${path.module}/nginx-ingress-values.yaml")]
 
-  values     = [file("${path.module}/nginx-ingress-values.yaml")]
   depends_on = [aws_eks_node_group.eks_node_group]
 }
 
+#===========================#
+# DATA SOURCE: AWS LOAD BALANCER FOR NGINX
+#===========================#
 data "aws_lb" "nginx_ingress" {
   tags = {
     "kubernetes.io/service-name" = "ingress-nginx/nginx-ingress-ingress-nginx-controller"
@@ -36,6 +52,9 @@ data "aws_lb" "nginx_ingress" {
   depends_on = [helm_release.nginx_ingress]
 }
 
+#===========================#
+# HELM RELEASE: CERT-MANAGER
+#===========================#
 resource "helm_release" "cert_manager" {
   name             = "cert-manager"
   repository       = "https://charts.jetstack.io"
@@ -43,14 +62,20 @@ resource "helm_release" "cert_manager" {
   version          = "1.14.5"
   namespace        = "cert-manager"
   create_namespace = true
-  set {
-    name  = "installCRDs"
-    value = "true"
-  }
+
+  set = [
+    {
+      name  = "installCRDs"
+      value = "true"
+    }
+  ]
+
   depends_on = [helm_release.nginx_ingress]
 }
-#==================================================
 
+#===========================#
+# HELM RELEASE: ARGOCD
+#===========================#
 resource "helm_release" "argocd" {
   name             = "argocd"
   repository       = "https://argoproj.github.io/argo-helm"
@@ -59,5 +84,6 @@ resource "helm_release" "argocd" {
   namespace        = "argocd"
   create_namespace = true
   values           = [file("${path.module}/argocd-values.yaml")]
-  depends_on       = [helm_release.nginx_ingress, helm_release.cert_manager]
+
+  depends_on = [helm_release.nginx_ingress, helm_release.cert_manager]
 }

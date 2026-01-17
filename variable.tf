@@ -63,7 +63,7 @@ variable "capacity_type" {
 variable "eks_version" {
   description = "EKS cluster version"
   type        = string
-  default     = "1.32"
+  default     = "1.29"
 }
 variable "ami_type" {
   description = "AMI type for the EKS node group"
