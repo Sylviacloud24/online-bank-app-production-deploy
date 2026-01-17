@@ -19,9 +19,23 @@ jobs:
       AWS_REGION: ${{ secrets.AWS_REGION }}
 
     steps:
+      # -------------------------
+      # Checkout repository
+      # -------------------------
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0   # Ensure full repo and modules are fetched
 
+      # -------------------------
+      # Convert line endings
+      # -------------------------
+      - name: Convert line endings to LF
+        run: git config --global core.autocrlf input
+
+      # -------------------------
+      # Setup AWS CLI
+      # -------------------------
       - name: Update AWS CLI
         run: |
           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
@@ -35,9 +49,17 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      # -------------------------
+      # Setup Terraform
+      # -------------------------
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6.0   # Match your local version
 
+      # -------------------------
+      # Terraform steps
+      # -------------------------
       - name: Terraform Init
         run: terraform init
 
@@ -48,7 +70,7 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan
-        run: terraform plan
+        run: terraform plan -out=tfplan
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve
+        run: terraform apply -auto-approve tfplan
